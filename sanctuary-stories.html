@@ -5,35 +5,116 @@
 	<title>Sanctuary Stories Map</title>
 	<meta charset="utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.3/dist/leaflet.css" integrity="sha512-07I2e+7D8p6he1SIM+1twR5TIrhUQn9+I6yjqD53JQjFiMf8EtC93ty0/5vJTZGF8aAocvHYNEDJajGdNx1IsQ==" crossorigin=""/>
-    <script src="https://unpkg.com/leaflet@1.0.3/dist/leaflet.js" integrity="sha512-A7vV8IFfih/D732iSSKi20u/ooOfj/AGehOKq0f4vLT1Zr2Y+RX7C+w8A1gaSasGtRUZpF/NZgzSAu4/Gc41Lg==" crossorigin=""></script>
+	<link href='https://api.mapbox.com/mapbox.js/v3.1.0/mapbox.css' rel='stylesheet' />
+ 	<script src='https://api.mapbox.com/mapbox.js/v3.1.0/mapbox.js'></script>
+	<script src="https://cdn.polyfill.io/v2/polyfill.js?features=fetch,Promise,Request"></script>
 	<script src="./secrets.js"></script>
     <style>
+		body {
+			margin: 0;
+			padding: 0;
+		}
         #mapid {
-            height: 600px;
-            width: 800px;
+			bottom: 0;
+			position: absolute;
+			top: 0;
+			width: 100%;
         }
     </style>
 </head>
 <body>
 
-
+<script src='https://api.mapbox.com/mapbox.js/plugins/leaflet-markercluster/v1.0.0/leaflet.markercluster.js'></script>
+<link href='https://api.mapbox.com/mapbox.js/plugins/leaflet-markercluster/v1.0.0/MarkerCluster.css' rel='stylesheet' />
+<link href='https://api.mapbox.com/mapbox.js/plugins/leaflet-markercluster/v1.0.0/MarkerCluster.Default.css' rel='stylesheet' />
 
 <div id="mapid"></div>
 <script>
 	var FUSION_API_KEY = tokens.FUSION_API_KEY;
-	var mymap = L.map('mapid').setView([37.09024, -95.712891], 4);
+	var FUSION_TABLE_ID = tokens.FUSION_TABLE_ID;
+	var MAPBOX_TOKEN = tokens.MAPBOX_TOKEN;
+	var FUSION_API_URL = 'https://www.googleapis.com/fusiontables/v2/query';
 
-	L.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-		maxZoom: 18,
-		attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, ' +
-			'<a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>',
-		id: 'base-map'
-	}).addTo(mymap);
+	L.mapbox.accessToken = MAPBOX_TOKEN;
+	var storyMap = L.mapbox.map('mapid', 'mapbox.light')
+		.setView([37.09024, -95.712891], 4);
 
-	L.marker([37.09024, -95.712891]).addTo(mymap)
-		.bindPopup("<b>Hello world!</b><br />I am a popup.").openPopup();
+	function getData(url, token) {
+		var query = "SELECT * FROM " + FUSION_TABLE_ID; //+ " WHERE Approved='YES'";
+		var requestUrl = FUSION_API_URL + '?sql=' + query + '&typed=true&key=' + FUSION_API_KEY;
+		//var requestUrl = SPREADSHEET_URL;
+		console.log(requestUrl);
+		var request = new Request(requestUrl);
+		console.log(request.url);
+		fetch(request).then(function(response) {
+			if (response.ok) {
+				return response.json();
+			}
+		}).then(initMap);
+	}
 
+	function initMap(data) {
+		console.log('initiating');
+		console.log(data);
+
+		var rows = createDataMaps(data);
+		console.log(rows);
+
+		var markerLayer = createMarkers(rows);
+		markerLayer.addTo(storyMap);
+	}
+
+	// Convert Fusion Table data into an array of objects
+	function createDataMaps(data) {
+		var dataMaps = [];
+		var rows = data.rows;
+		var columns = data.columns;
+		rows.forEach(function(row) {
+			dataMaps.push(createRowObject(row, columns));
+		});
+		return dataMaps;
+	}
+
+	function createRowObject(row, columns) {
+		var rowObject = {};
+		for (i=1; i<row.length; i++) {
+			rowObject[columns[i]] = row[i];
+		}
+		return rowObject;
+	}
+
+
+	function createMarkers(rows) {
+		var markers = new L.MarkerClusterGroup();
+		rows.forEach(function(row) {
+			var location = row.Location.split(',');
+			var marker = L.marker(location, {
+				icon: L.mapbox.marker.icon({
+					'marker-color': '0044FF'
+				})
+			});
+			var popup = createPopupContent(row);
+			marker.bindPopup(popup);
+			markers.addLayer(marker);
+		});
+		return markers;
+	}
+
+	function createPopupContent(row) {
+		var content = '<div class="popup"><b><p class="popup__title">' + row['Title'] + '<p></b>'+
+			'<p class="popup__address">Address: ' + row['Full address'] + '</p>';
+		urls = row['urls'].split(';')
+		urls.forEach(function(url) {
+			url = url.trim();
+			content = content + '<a class="popup__url" href="' + url + '" target="_blank">' + url + '</a><br>';
+		});
+		content = content + '</div>';
+		content = L.mapbox.sanitize(content)
+		return content;
+	}
+
+	getData();
+	
 </script>
 
 </body>

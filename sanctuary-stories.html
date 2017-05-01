@@ -1,0 +1,40 @@
+
+<!DOCTYPE html>
+<html>
+<head>	
+	<title>Sanctuary Stories Map</title>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.3/dist/leaflet.css" integrity="sha512-07I2e+7D8p6he1SIM+1twR5TIrhUQn9+I6yjqD53JQjFiMf8EtC93ty0/5vJTZGF8aAocvHYNEDJajGdNx1IsQ==" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.0.3/dist/leaflet.js" integrity="sha512-A7vV8IFfih/D732iSSKi20u/ooOfj/AGehOKq0f4vLT1Zr2Y+RX7C+w8A1gaSasGtRUZpF/NZgzSAu4/Gc41Lg==" crossorigin=""></script>
+	<script src="./secrets.js"></script>
+    <style>
+        #mapid {
+            height: 600px;
+            width: 800px;
+        }
+    </style>
+</head>
+<body>
+
+
+
+<div id="mapid"></div>
+<script>
+	var FUSION_API_KEY = tokens.FUSION_API_KEY;
+	var mymap = L.map('mapid').setView([37.09024, -95.712891], 4);
+
+	L.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+		maxZoom: 18,
+		attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, ' +
+			'<a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>',
+		id: 'base-map'
+	}).addTo(mymap);
+
+	L.marker([37.09024, -95.712891]).addTo(mymap)
+		.bindPopup("<b>Hello world!</b><br />I am a popup.").openPopup();
+
+</script>
+
+</body>
+</html>

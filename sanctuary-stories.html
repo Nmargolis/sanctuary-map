@@ -20,6 +20,24 @@
 			top: 0;
 			width: 100%;
         }
+		a.popup__url {
+			color: #2ac5ee;
+			display: block;
+			line-height: 1.3em;
+			margin-bottom: .75em;
+		}
+		.popup .popup__section-title {
+			margin-bottom: .3em;
+			font-weight: bold;
+			font-size: 12px;
+		}
+
+		.popup .popup__body {
+			font-size: 12px;
+		}
+		.popup {
+			word-wrap: break-word;
+		}
     </style>
 </head>
 <body>
@@ -34,15 +52,31 @@
 	var FUSION_TABLE_ID = tokens.FUSION_TABLE_ID;
 	var MAPBOX_TOKEN = tokens.MAPBOX_TOKEN;
 	var FUSION_API_URL = 'https://www.googleapis.com/fusiontables/v2/query';
+	var PRIMARY_COLOR = '#2ac5ee';
+	var MARKER_COLOR = PRIMARY_COLOR;
+	var ICON_TYPE_COLOR_MAP = {
+		'City': '#ff0',
+		'Library': "f0f",
+		'School': '0ff',
+		'Restaurant': 'afa'
+	}
+
+	var ICON_TYPE_SYMBOL_MAP = {
+		'City': 'city',
+		'Library': 'library',
+		'School': 'town-hall',
+		'Restaurant': 'restaurant'
+	}
 
 	L.mapbox.accessToken = MAPBOX_TOKEN;
 	var storyMap = L.mapbox.map('mapid', 'mapbox.light')
-		.setView([37.09024, -95.712891], 4);
+		.setView([37.09024, -95.712891], 4)
+		.addControl(L.mapbox.geocoderControl('mapbox.places'));
 
 	function getData(url, token) {
-		var query = "SELECT * FROM " + FUSION_TABLE_ID; //+ " WHERE Approved='YES'";
+		var query = "SELECT * FROM " + FUSION_TABLE_ID + " WHERE Approved='YES'";
 		var requestUrl = FUSION_API_URL + '?sql=' + query + '&typed=true&key=' + FUSION_API_KEY;
-		//var requestUrl = SPREADSHEET_URL;
+
 		console.log(requestUrl);
 		var request = new Request(requestUrl);
 		console.log(request.url);
@@ -75,6 +109,7 @@
 		return dataMaps;
 	}
 
+
 	function createRowObject(row, columns) {
 		var rowObject = {};
 		for (i=1; i<row.length; i++) {
@@ -88,9 +123,11 @@
 		var markers = new L.MarkerClusterGroup();
 		rows.forEach(function(row) {
 			var location = row.Location.split(',');
+			var type = row.Type;
 			var marker = L.marker(location, {
 				icon: L.mapbox.marker.icon({
-					'marker-color': '0044FF'
+					'marker-color': MARKER_COLOR,
+					'marker-symbol': ICON_TYPE_SYMBOL_MAP[type] || ''
 				})
 			});
 			var popup = createPopupContent(row);
@@ -102,12 +139,18 @@
 
 	function createPopupContent(row) {
 		var content = '<div class="popup"><b><p class="popup__title">' + row['Title'] + '<p></b>'+
-			'<p class="popup__address">Address: ' + row['Full address'] + '</p>';
-		urls = row['urls'].split(';')
-		urls.forEach(function(url) {
-			url = url.trim();
-			content = content + '<a class="popup__url" href="' + url + '" target="_blank">' + url + '</a><br>';
-		});
+			'<p class="popup__section-title">Address: </p><p class="popup__address popup__body">' + row['Full address'] + '</p>';
+			if (row.Description) {
+				content = content + '<p class="popup__section-title">Description: </p><p class="popup__description popup__body">' + row.Description + '</p>';
+			}
+			if(row.urls) {
+				content = content + '<p class="popup__section-title">Articles: </p>';
+				urls = row['urls'].split(';')
+				urls.forEach(function(url) {
+					url = url.trim();
+					content = content + '<a class="popup__url" href="' + url + '" target="_blank">' + url + '</a>';
+				});
+			}
 		content = content + '</div>';
 		content = L.mapbox.sanitize(content)
 		return content;
